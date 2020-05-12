@@ -198,10 +198,6 @@ public class Client {
 			String fileName = scanner.next();
 			sendSHA(fileName);
 
-			String dir = System.getProperty("user.dir");
-
-			System.out.println(dir);
-
 			boolean isSuccessful = sendFile(publicRsaKey, secretAesKey, new File(dir + "/" + fileName));
 			if (isSuccessful) {
 				System.out.println("File was successfully sent.");

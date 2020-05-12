@@ -27,6 +27,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Optional;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.spec.SecretKeySpec;
@@ -218,9 +220,13 @@ public class Server {
 					byte[] aesKey = readAndDecryptAesKey();
 					File file = receiveFile(aesKey);
 
-					String dir = System.getProperty("user.dir");
+					Optional<String> extension = Optional.ofNullable(file.getName())
+					.filter(f -> f.contains("."))
+					.map(f -> f.substring(file.getName().lastIndexOf(".") + 1));
 
-					BufferedWriter bw = new BufferedWriter(new PrintWriter(new File(dir+"/hola.md")));
+					String dir = System.getProperty("user.dir") +"/testData";
+
+					BufferedWriter bw = new BufferedWriter(new PrintWriter(new File(dir+"/recievedFile." + extension.get())));
 					BufferedReader br = new BufferedReader(new FileReader(file));
 
 					br.transferTo(bw);
