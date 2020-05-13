@@ -7,7 +7,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -18,7 +17,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
-import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -30,7 +28,6 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.spec.SecretKeySpec;
 
-import util.HashUtilities;
 import util.ProtocolUtilities;
 import util.SecurityUtilities;
 
@@ -38,24 +35,22 @@ public class Handler extends Thread {
     private Socket socket;
     private InputStream in;
     private OutputStream out;
-    private KeyPair keyPair;
-    private PublicKey publicKey;
-    private PrivateKey privateKey;
-    private String fileChecksum;
+    private ServerManager server;
 
-    public Handler(Socket socket) {
+    public Handler(Socket socket, ServerManager server) {
         this.socket = socket;
+        this.server = server;
     }
 
     public void setKeyPair() throws NoSuchAlgorithmException {
-        keyPair = SecurityUtilities.RSAKeyPairGenerator();
+        server.setKeyPair(SecurityUtilities.RSAKeyPairGenerator());
     }
 
     private void sendPublicKey() throws IOException {
         StringBuilder messageHeader = new StringBuilder();
         messageHeader.append("PUBLIC KEY\n");
 
-        PublicKey pk = keyPair.getPublic();
+        PublicKey pk = server.getKeyPair().getPublic();
 
         messageHeader.append(pk.getEncoded().length + "\n\n");
         out.write(messageHeader.toString().getBytes("ASCII"));
@@ -78,7 +73,7 @@ public class Handler extends Thread {
         byte[] encryptedAesKey = new byte[ProtocolUtilities.KEY_SIZE_AES * 2];
         in.read(encryptedAesKey);
         // put the private RSA key in the appropriate data structure
-        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded());
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(server.getKeyPair().getPrivate().getEncoded());
         PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(privateKeySpec);
         // Decipher the AES key using the private RSA key
         Cipher pkCipher = Cipher.getInstance("RSA");
@@ -148,7 +143,7 @@ public class Handler extends Thread {
                 break;
             case "SHA":
                 try {
-                    fileChecksum = getChecksum();
+                    server.setChecksum(getChecksum());
                     // System.out.println("Recieved SHA-256 Checksum:" + fileChecksum);
                 } catch (IOException e) {
                     System.err.println("Connection to client dropped. Failed to send public key.");
@@ -175,10 +170,10 @@ public class Handler extends Thread {
                     System.out.println("Received File");
                     System.out.println("Name: " + file.getName());
                     System.out.println("Size:" + file.length());
-                    System.out.println("Received SHA256 Checksum:" + fileChecksum);
-                    String check = SecurityUtilities.encodeHexString(HashUtilities.SHA256.checksum(new File(file.getName())));
-                    System.out.println("Calculated SHA256 Checksum:" + check);
-                    if (check.equals(fileChecksum)) {
+                    System.out.println("Received SHA-1 Checksum:" + server.getChecksum());
+                    String check = SecurityUtilities.encodeHexString(SecurityUtilities.checksum(new File(file.getName())));
+                    System.out.println("Calculated SHA-1 Checksum:" + check);
+                    if (check.equals(server.getChecksum())) {
                         System.out.println("File intact");
                         out.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
                         out.flush();
