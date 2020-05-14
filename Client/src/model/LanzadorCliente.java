@@ -2,7 +2,7 @@ package model;
 
 import java.io.IOException;
 
-public final class ClientLauncher {
+public final class LanzadorCliente {
 
     private final static int PORT = 8080;
     private final static String HOST = "localhost";
@@ -10,16 +10,16 @@ public final class ClientLauncher {
     public static void main(String[] args) {
         try {
 			if (args.length == 2) {
-				String hostName = args[0];
-                int portNumber = Integer.parseInt(args[1]);
-                new Client(portNumber, hostName).startClient();
+				String nombreHost = args[0];
+                int numeroPuerto = Integer.parseInt(args[1]);
+                new Cliente(numeroPuerto, nombreHost).iniciarCliente();
 			} else if (args.length == 0)
-				// use defaults if no host name and port number are provided.
-				new Client(PORT, HOST).startClient(); 
+				
+				new Cliente(PORT, HOST).iniciarCliente(); 
 			else
 				throw new IllegalArgumentException();
 		} catch (IllegalArgumentException | IOException  e) {
-			System.out.println("Usage: java ClientSender [hostName portNumber]");
+			System.out.println("Usando: lanzador java [nombreHost numeroPuerto]");
 			
         }      
 		
