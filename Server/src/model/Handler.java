@@ -95,11 +95,12 @@ public class Handler extends Thread {
         return line.toString();
     }
 
-    private File receiveDecryptFile(byte[] aesKey) throws GeneralSecurityException, IOException {
-        Cipher aesCipher = Cipher.getInstance("AES");
-        SecretKeySpec aeskeySpec = new SecretKeySpec(aesKey, "AES");
-        aesCipher.init(Cipher.DECRYPT_MODE, aeskeySpec);
-        CipherInputStream cipherInputStream = new CipherInputStream(in, aesCipher);
+    private File receiveDecryptFile() throws GeneralSecurityException, IOException {
+        Cipher rasCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        //SecretKeySpec aeskeySpec = new SecretKeySpec(aesKey, "AES");
+        rasCipher.init(Cipher.DECRYPT_MODE, server.getKeyPair().getPrivate());
+        CipherInputStream cipherInputStream = new CipherInputStream(in, rasCipher);
+
         String fileName = scanLineFromCipherStream(cipherInputStream);
         String fileSize = scanLineFromCipherStream(cipherInputStream);
         File receivedFile = new File(fileName.toString());
@@ -107,10 +108,12 @@ public class Handler extends Thread {
         ProtocolUtilities.sendBytes(cipherInputStream, foStream, Long.parseLong(fileSize));
         foStream.flush();
         foStream.close();
+        
         return receivedFile;
     }
 
     private String getChecksum() throws IOException {
+        System.out.println("Receiving SHA-1");
         BufferedReader br = new BufferedReader(new InputStreamReader(in));
         String sha = br.readLine();
         return sha;
@@ -151,8 +154,8 @@ public class Handler extends Thread {
                 break;
             case "FILE TRANSFER":
                 try {
-                    byte[] aesKey = readAndDecryptAesKey();
-                    File file = receiveDecryptFile(aesKey);
+                    //byte[] aesKey = readAndDecryptAesKey();
+                    File file = receiveDecryptFile();
 
                     Optional<String> extension = Optional.ofNullable(file.getName())
                         .filter(f -> f.contains("."))
@@ -175,8 +178,10 @@ public class Handler extends Thread {
                     System.out.println("Calculated SHA-1 Checksum:" + check);
                     if (check.equals(server.getChecksum())) {
                         System.out.println("File intact");
-                        out.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
-                        out.flush();
+                        BufferedOutputStream bos = new BufferedOutputStream(out);
+                        bos.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
+                        bos.flush();
+                        bos.close();
                         socket.close();
                     } else {
                         System.out.println("File is corrupted");

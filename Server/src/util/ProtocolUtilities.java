@@ -91,4 +91,8 @@ public class ProtocolUtilities {
 		scanner.close();
 		return headerParts;
 	}
+
+	public static void sendMessage(OutputStream stream, byte[] message){
+
+	}
 }

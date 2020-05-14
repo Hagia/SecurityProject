@@ -21,9 +21,7 @@ public final class ClientLauncher {
 		} catch (IllegalArgumentException | IOException  e) {
 			System.out.println("Usage: java ClientSender [hostName portNumber]");
 			
-        }
-        
-        
+        }      
 		
 	}
     
