@@ -97,7 +97,7 @@ public class Handler extends Thread {
 
     private File receiveDecryptFile() throws GeneralSecurityException, IOException {
         Cipher rasCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        //SecretKeySpec aeskeySpec = new SecretKeySpec(aesKey, "AES");
+        // SecretKeySpec aeskeySpec = new SecretKeySpec(aesKey, "AES");
         rasCipher.init(Cipher.DECRYPT_MODE, server.getKeyPair().getPrivate());
         CipherInputStream cipherInputStream = new CipherInputStream(in, rasCipher);
 
@@ -108,7 +108,7 @@ public class Handler extends Thread {
         ProtocolUtilities.sendBytes(cipherInputStream, foStream, Long.parseLong(fileSize));
         foStream.flush();
         foStream.close();
-        
+
         return receivedFile;
     }
 
@@ -154,16 +154,16 @@ public class Handler extends Thread {
                 break;
             case "FILE TRANSFER":
                 try {
-                    //byte[] aesKey = readAndDecryptAesKey();
+                    // byte[] aesKey = readAndDecryptAesKey();
                     File file = receiveDecryptFile();
 
-                    Optional<String> extension = Optional.ofNullable(file.getName())
-                        .filter(f -> f.contains("."))
-                        .map(f -> f.substring(file.getName().lastIndexOf(".") + 1));
+                    Optional<String> extension = Optional.ofNullable(file.getName()).filter(f -> f.contains("."))
+                            .map(f -> f.substring(file.getName().lastIndexOf(".") + 1));
 
                     String dir = System.getProperty("user.dir") + "/testData";
 
-                    BufferedWriter bw = new BufferedWriter(new PrintWriter(new File(dir + "/recievedFile." + extension.get())));
+                    BufferedWriter bw = new BufferedWriter(
+                            new PrintWriter(new File(dir + "/recievedFile." + extension.get())));
                     BufferedReader br = new BufferedReader(new FileReader(file));
 
                     br.transferTo(bw);
@@ -174,10 +174,12 @@ public class Handler extends Thread {
                     System.out.println("Name: " + file.getName());
                     System.out.println("Size:" + file.length());
                     System.out.println("Received SHA-1 Checksum:" + server.getChecksum());
-                    String check = SecurityUtilities.encodeHexString(SecurityUtilities.checksum(new File(file.getName())));
+                    String check = SecurityUtilities
+                            .encodeHexString(SecurityUtilities.checksum(new File(file.getName())));
                     System.out.println("Calculated SHA-1 Checksum:" + check);
                     if (check.equals(server.getChecksum())) {
                         System.out.println("File intact");
+                        server.setCompare("SUCCESS");
                         BufferedOutputStream bos = new BufferedOutputStream(out);
                         bos.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
                         bos.flush();
@@ -185,6 +187,7 @@ public class Handler extends Thread {
                         socket.close();
                     } else {
                         System.out.println("File is corrupted");
+                        server.setCompare("CORRUPT");
                         out.write("FAIL\nunsuccessful transmission\n\n".getBytes("ASCII"));
                         out.flush();
                         socket.close();
@@ -198,6 +201,17 @@ public class Handler extends Thread {
                     System.err.println("Connection to client dropped.");
                     return;
                 }
+                break;
+            case "CHECK":
+               try{
+                BufferedOutputStream bos = new BufferedOutputStream(out);
+                bos.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
+                bos.flush();
+                bos.close();
+                socket.close();
+               }catch(IOException e){
+                    e.printStackTrace();
+               }
                 break;
             default:
                 sendErrorMessage("INVALID COMMAND");

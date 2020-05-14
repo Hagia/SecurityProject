@@ -6,6 +6,7 @@ import java.security.KeyPair;
 public class ServerManager {
     private KeyPair keyPair;
     private String fileChecksum;
+    private String compareResult;
     
     public ServerManager(int port) throws Exception{
         System.out.println("The server is running.");
@@ -34,6 +35,15 @@ public class ServerManager {
 
     public String getChecksum(){
         return this.fileChecksum;
+    }
+
+    public void setCompare(String compare){
+        this.compareResult = compare;
+
+    }
+
+    public String getCompare(){
+        return this.compareResult;
     }
 
 }

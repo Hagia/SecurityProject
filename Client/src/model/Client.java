@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -68,7 +69,8 @@ public class Client {
 			String fileName = scanner.next();
 			sendSHA(fileName);
 
-			boolean isSuccessful = sendFile(publicRsaKey, new File(fileName));
+			sendFile(publicRsaKey, new File(fileName));
+			boolean isSuccessful = checkSHA(); 
 			if (isSuccessful) {
 				System.out.println("File was successfully sent.");
 			} else {
@@ -124,9 +126,9 @@ public class Client {
 			out.flush();
 			serverResponse = ProtocolUtilities.consumeAndBreakHeader(in);
 			socket.close();
-		}		
+		}
 
-		if (!serverResponse.get(0).equals("SUCCESS")) {
+		if (serverResponse != null && !serverResponse.get(0).equals("SUCCESS")) {
 			System.err.println("Failed to send file. The Server responded with the following:");
 			for (String msg : serverResponse)
 				System.err.println(msg);
@@ -168,5 +170,19 @@ public class Client {
 		outS.flush();
 		outS.close();
 		socket.close();
+	}
+
+	private boolean checkSHA() throws UnsupportedEncodingException, IOException {
+		Socket socket = getSocket();
+		BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
+		BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
+		out.write("CHECK\n\n".getBytes("ASCII"));
+		out.flush();
+		ArrayList<String> headerParts = ProtocolUtilities.consumeAndBreakHeader(in);
+		if (headerParts.get(0).equals("SUCCESS")) {
+			return true;
+		}
+		return false;
+		
 	}
 }
