@@ -12,7 +12,7 @@ public class Protocolo {
 	
 	public static void imprimirArregloBytes(String msj, byte[] arregloBytes) {
 		System.out.println(msj);
-		System.out.println("Tamaño: " + arregloBytes.length + " bytes.");
+		System.out.println("Tamaï¿½o: " + arregloBytes.length + " bytes.");
 		StringBuilder resultado = new StringBuilder();
 		for (int i = 0; i < arregloBytes.length; i++) {
 			resultado.append(String.format("%02x", arregloBytes[i]));

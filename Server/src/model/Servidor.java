@@ -89,7 +89,7 @@ public class Servidor extends Thread {
         Protocolo.transferirBytes(flujoEntradaCifrador, flujoSalidaArchivo, Long.parseLong(tamanoArchivo));
         flujoSalidaArchivo.flush();
         flujoSalidaArchivo.close();
-        
+
         return archivoRecibido;
     }
 
@@ -128,23 +128,23 @@ public class Servidor extends Thread {
             case "SHA":
                 try {
                     servidor.definirChecksum(obtenerChecksum());
-                   
+
                 } catch (IOException e) {
                     System.err.println("Se perdio la conexion con el cliente.  Fallo en el envio de la clave.");
                 }
                 break;
             case "FILE TRANSFER":
                 try {
-                 
+
                     File archivo = RecibirYDesencriptarArchivo();
 
-                    Optional<String> extension = Optional.ofNullable(archivo.getName())
-                        .filter(f -> f.contains("."))
-                        .map(f -> f.substring(archivo.getName().lastIndexOf(".") + 1));
+                    Optional<String> extension = Optional.ofNullable(archivo.getName()).filter(f -> f.contains("."))
+                            .map(f -> f.substring(archivo.getName().lastIndexOf(".") + 1));
 
                     String directorio = System.getProperty("user.dir") + "/testData";
 
-                    BufferedWriter bufferEscritor = new BufferedWriter(new PrintWriter(new File(directorio + "/recievedFile." + extension.get())));
+                    BufferedWriter bufferEscritor = new BufferedWriter(
+                            new PrintWriter(new File(directorio + "/recievedFile." + extension.get())));
                     BufferedReader bufferLector = new BufferedReader(new FileReader(archivo));
 
                     bufferLector.transferTo(bufferEscritor);
@@ -153,24 +153,19 @@ public class Servidor extends Thread {
 
                     System.out.println("Archivo Recibido");
                     System.out.println("Nombre: " + archivo.getName());
-                    System.out.println("Tamaño:" + archivo.length());
+                    System.out.println("Tamaï¿½o:" + archivo.length());
                     System.out.println("Checksum:" + servidor.obtenerChecksum());
                     String verificacion = Seguridad.codificadorHex(Seguridad.checksum(new File(archivo.getName())));
                     System.out.println("Checksum Calculado:" + verificacion);
 
                     if (verificacion.equals(servidor.obtenerChecksum())) {
                         System.out.println("Archivo recibido correctamente");
-                     
-                        BufferedOutputStream bufferFlujoSalida = new BufferedOutputStream(salida);
-                        bufferFlujoSalida.write("SUCCESS\nsuccessful transmission\n\n".getBytes("ASCII"));
-                        bufferFlujoSalida.flush();
-                        
-                        //bufferFlujoSalida.close();
-                        //socket.close();
+                        servidor.setCompare("CORRECTO");
+                        socket.close();
+
                     } else {
+                        servidor.setCompare("INCORRECTO");
                         System.out.println("El archivo se corrompio");
-                        salida.write("FAIL\nunsuccessful transmission\n\n".getBytes("ASCII"));
-                        salida.flush();
                         socket.close();
                     }
                 } catch (GeneralSecurityException e) {
@@ -182,6 +177,18 @@ public class Servidor extends Thread {
                     System.err.println("La conexion con el cliente se ha perdido.");
                     return;
                 }
+            case "CONFIRMAR":
+                try {
+                    BufferedOutputStream bos = new BufferedOutputStream(salida);
+                    bos.write((servidor.getCompare()+"\ntransmision exitosa\n\n").getBytes("ASCII"));
+                    bos.flush();
+                    bos.close();
+                    socket.close();
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 break;
             default:
                 enviarMensajeError("INVALID COMMAND");

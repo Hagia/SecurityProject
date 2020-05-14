@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -51,7 +52,7 @@ public class Cliente {
 	}
 
 	public void iniciarCliente() {
-		System.out.println("Usando el número de host: " + nombreHost + " y puerto número: " + numeroPuerto + "...");
+		System.out.println("Usando el nï¿½mero de host: " + nombreHost + " y puerto nï¿½mero: " + numeroPuerto + "...");
 		byte[] rsaClavePublica;
 		File[] directorioActual = new File(Paths.get(".").toAbsolutePath().toString()).listFiles();
 		System.out.println("Archivos disponible en el directorio actual:");
@@ -66,16 +67,12 @@ public class Cliente {
 			String nombreArchivo = scanner.next();
 			enviarSHA(nombreArchivo);
 
-			boolean esExitoso = enviarArchivo(rsaClavePublica, new File(nombreArchivo));
+			enviarArchivo(rsaClavePublica, new File(nombreArchivo));
+			boolean esExitoso = confirmarRecepcion();
 			if (esExitoso) {
 				System.out.println("Envio de archivo exitoso!");
 			} else {
 				System.out.println("Archivo no enviado.");
-				boolean reintentar = false;
-				while (!reintentar) {
-					System.out.println("Reintentando enviar archivo. ");
-					reintentar = enviarArchivo(rsaClavePublica, new File(nombreArchivo));
-				}
 			}
 			scanner.close();
 		} catch (FileNotFoundException e) {
@@ -88,24 +85,24 @@ public class Cliente {
 		}
 	}
 
-	private boolean enviarArchivo(byte[] clavePublica, File archivo)
+	private void enviarArchivo(byte[] clavePublica, File archivo)
 			throws FileNotFoundException, IOException, GeneralSecurityException {
 		System.out.println("Enviando archivo...");
 		Socket socket = obtenerSocket();
 		BufferedOutputStream salida = new BufferedOutputStream(socket.getOutputStream());
 		BufferedInputStream entrada = new BufferedInputStream(socket.getInputStream());
-		
+
 		salida.write("FILE TRANSFER\n\n".getBytes("ASCII"));
-		
+
 		String archivoNombreYTamano = new String(archivo.getName() + "\n" + archivo.length() + "\n");
 		ByteArrayInputStream infoArchivo = new ByteArrayInputStream(archivoNombreYTamano.getBytes("ASCII"));
-		
+
 		Cipher cifradorRSA = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		PublicKey pk = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(clavePublica));
 		cifradorRSA.init(Cipher.ENCRYPT_MODE, pk);
 		CipherOutputStream flujoSalidaCifrador = new CipherOutputStream(salida, cifradorRSA);
 		Protocolo.transferirBytes(infoArchivo, flujoSalidaCifrador);
-	
+
 		FileInputStream flujoArchivoEntrada = new FileInputStream(archivo);
 		Protocolo.transferirBytes(flujoArchivoEntrada, flujoSalidaCifrador);
 		flujoSalidaCifrador.close();
@@ -114,22 +111,13 @@ public class Cliente {
 
 		salida.write(cifradorRSA.doFinal());
 		salida.write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n".getBytes("ASCII"));
-		
+
 		System.out.println(!socket.isClosed());
 		if (!socket.isClosed()) {
 			salida.flush();
 			respuestaServidor = Protocolo.segmentacionYConsumoEncabezado(entrada);
 			socket.close();
-		}		
-
-		if (!respuestaServidor.get(0).equals("SUCCESS")) {
-			System.err.println("Fallo el envio del archivo. El servidor responde lo siguiente:");
-			for (String msg : respuestaServidor)
-				System.err.println(msg);
-			return false;
 		}
-
-		return true;
 	}
 
 	private byte[] obtenerClavePublica() throws IOException {
@@ -164,5 +152,19 @@ public class Cliente {
 		escritor.flush();
 		escritor.close();
 		socket.close();
+	}
+
+	private boolean confirmarRecepcion() throws UnsupportedEncodingException, IOException {
+		Socket socket = obtenerSocket();
+		BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
+		BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
+		out.write("CONFIRMAR\n\n".getBytes("ASCII"));
+		out.flush();
+		ArrayList<String> headerParts = Protocolo.segmentacionYConsumoEncabezado(in);
+		if (headerParts.get(0).equals("CORRECTO")) {
+			return true;
+		}
+		return false;
+
 	}
 }
