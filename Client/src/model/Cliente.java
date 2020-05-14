@@ -28,6 +28,12 @@ import javax.crypto.KeyGenerator;
 import util.Protocolo;
 import util.Seguridad;
 
+/**
+ * Clase que representa el cliente
+ * 
+ * @author Juan
+ *
+ */
 public class Cliente {
 
 	private String nombreHost;
@@ -39,6 +45,12 @@ public class Cliente {
 		this.numeroPuerto = pPuerto;
 	}
 
+	/**
+	 * Metodo que obtiene el socket del cliente, si existe lo envia, de lo contrario
+	 * lo crea.
+	 * 
+	 * @return socket: el socket del cliente.
+	 */
 	public Socket obtenerSocket() {
 		try {
 			if (socket != null && !socket.isClosed()) {
@@ -51,6 +63,11 @@ public class Cliente {
 		return socket;
 	}
 
+	/**
+	 * Inicializa todo lo relacionado con el cliente, obtiene la clave publica del
+	 * servidor y llama al metodo que encripta y envia el archivo al servidor.
+	 * Notifica al usuario como finalizo el envio.
+	 */
 	public void iniciarCliente() {
 		System.out.println("Usando el n�mero de host: " + nombreHost + " y puerto n�mero: " + numeroPuerto + "...");
 		byte[] rsaClavePublica;
@@ -85,6 +102,17 @@ public class Cliente {
 		}
 	}
 
+	/**
+	 * Se encarga encriptar el archivo seleccionado con una clave publica cada
+	 * 
+	 * @param clavePublica
+	 *            Clave publica dada por el servidor
+	 * @param archivo
+	 *            Archivo que sera encriptado usando la clave publica
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws GeneralSecurityException
+	 */
 	private void enviarArchivo(byte[] clavePublica, File archivo)
 			throws FileNotFoundException, IOException, GeneralSecurityException {
 		System.out.println("Enviando archivo...");
@@ -120,6 +148,12 @@ public class Cliente {
 		}
 	}
 
+	/**
+	 * Permite obtener la clave publica del servidor
+	 * 
+	 * @return Clave publica en bytes
+	 * @throws IOException
+	 */
 	private byte[] obtenerClavePublica() throws IOException {
 		Socket socket = obtenerSocket();
 		BufferedOutputStream salida = new BufferedOutputStream(socket.getOutputStream());
@@ -140,6 +174,13 @@ public class Cliente {
 		return clavePublica;
 	}
 
+	/**
+	 * Envia el SHA del nombre del archivo que se envia (Proceso Checksum)
+	 * 
+	 * @param nombreArchivo
+	 *            Nombre del archivo que se envia
+	 * @throws IOException
+	 */
 	private void enviarSHA(String nombreArchivo) throws IOException {
 		System.out.println("Enviando SHA");
 		Socket socket = obtenerSocket();
@@ -154,6 +195,13 @@ public class Cliente {
 		socket.close();
 	}
 
+	/**
+	 * Permite confirmar la recepcion del archivo por parte del servidor
+	 * 
+	 * @return El servidor recibio o no el archivo que se le envio
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
 	private boolean confirmarRecepcion() throws UnsupportedEncodingException, IOException {
 		Socket socket = obtenerSocket();
 		BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
